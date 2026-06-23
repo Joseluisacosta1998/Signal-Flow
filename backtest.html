@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SignalFlow · Backtest</title>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#08090d">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+:root{--bg:#08090d;--s1:#0e1018;--s2:#13161f;--s3:#1a1e2a;--border:#1f2435;--border2:#262c3d;--long:#00e5a0;--long-dim:rgba(0,229,160,0.1);--short:#ff4466;--short-dim:rgba(255,68,102,0.1);--neutral:#f5a623;--neutral-dim:rgba(245,166,35,0.1);--text:#e2e8f4;--muted:#5a6278;--muted2:#3d4358;--accent:#5b6ef5;--accent2:#7c8cf8;--mono:'IBM Plex Mono',monospace;--sans:'Inter',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:48px;}
+/* HEADER */
+.header{padding:14px 16px 10px;border-bottom:1px solid var(--border);background:var(--s1);position:sticky;top:0;z-index:100;}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.logo{display:flex;align-items:center;gap:8px;min-width:0;}
+.logo-icon{width:26px;height:26px;background:linear-gradient(135deg,var(--accent),#9b6ef5);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.logo-text{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;white-space:nowrap;}
+.logo-text span{color:var(--accent2);}
+.header-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.nav-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;background:var(--s3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap;}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent2);}
+.header-sub{margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.5px;}
+/* FILTER CHIPS */
+.filter-bar{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--s1);}
+.filter-label{font-family:var(--mono);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.combo-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.combo-chip{padding:5px 10px;background:var(--s3);border:1px solid var(--border2);border-radius:8px;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.combo-chip:hover{border-color:var(--accent2);color:var(--accent2);}
+.combo-chip.active{background:rgba(91,110,245,.12);border-color:var(--accent);color:var(--accent2);}
+.combo-chip.active.c0{background:rgba(91,110,245,.12);border-color:var(--accent);color:var(--accent2);}
+.combo-chip.active.c1{background:rgba(91,110,245,.1);border-color:var(--accent);color:var(--accent2);}
+.combo-chip.active.c2{background:rgba(245,166,35,.1);border-color:var(--neutral);color:var(--neutral);}
+.combo-chip.active.c3{background:rgba(0,180,255,.1);border-color:#00b4ff;color:#00b4ff;}
+.combo-chip.active.c4{background:rgba(255,100,68,.1);border-color:#ff6444;color:#ff6444;}
+.combo-chip.active.c5{background:rgba(0,229,160,.1);border-color:var(--long);color:var(--long);}
+.combo-chip.active.c6{background:rgba(91,110,245,.16);border-color:var(--accent);color:var(--accent2);}
+/* PERIOD BAR */
+.period-bar{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--s1);}
+.custom-range{display:none;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap;}
+.custom-range.show{display:flex;}
+.custom-range input[type="date"]{background:var(--s3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:10px;padding:5px 8px;}
+.custom-range span{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.custom-range button{padding:5px 10px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;}
+/* MAIN */
+.main{padding:14px 16px;}
+.section-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;margin-top:18px;}
+.section-eyebrow:first-child{margin-top:0;}
+/* SUMMARY CARDS */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.summary-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:12px 13px;}
+.summary-card-label{font-family:var(--mono);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.summary-card-val{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1;}
+.summary-card-val.long{color:var(--long);}
+.summary-card-val.short{color:var(--short);}
+.summary-card-val.neutral{color:var(--neutral);}
+.summary-card-sub{font-size:9px;color:var(--muted);margin-top:4px;}
+/* WIN RATE BAR */
+.wr-card{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:13px;margin-top:8px;}
+.wr-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+.wr-title{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.wr-pct{font-family:var(--mono);font-size:18px;font-weight:700;}
+.wr-bar-wrap{height:8px;background:var(--border2);border-radius:5px;overflow:hidden;display:flex;}
+.wr-bar-win{background:linear-gradient(90deg,rgba(0,229,160,.5),var(--long));height:100%;}
+.wr-bar-loss{background:linear-gradient(90deg,var(--short),rgba(255,68,102,.5));height:100%;}
+/* TABLE */
+.bt-table{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.bt-row{display:grid;grid-template-columns:1.6fr .7fr .7fr .9fr;gap:6px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:center;}
+.bt-row:last-child{border-bottom:none;}
+.bt-row.head{background:var(--s2);}
+.bt-row.head span{font-family:var(--mono);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.bt-name{font-family:var(--mono);font-size:10px;font-weight:700;display:flex;align-items:center;gap:5px;min-width:0;}
+.bt-num{font-family:var(--mono);font-size:10px;text-align:right;color:var(--text);}
+.bt-wr{font-family:var(--mono);font-size:10px;font-weight:700;text-align:right;}
+.bt-wr.good{color:var(--long);}
+.bt-wr.bad{color:var(--short);}
+.bt-wr.mid{color:var(--neutral);}
+/* TRADE LIST */
+.trade-list{display:flex;flex-direction:column;gap:7px;}
+.trade-item{background:var(--s1);border:1px solid var(--border);border-radius:11px;padding:10px 12px;}
+.trade-item.win{border-color:rgba(0,229,160,.25);}
+.trade-item.loss{border-color:rgba(255,68,102,.25);}
+.trade-item.open{border-color:var(--border2);background:rgba(245,166,35,.03);}
+.trade-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.trade-id{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;}
+.trade-dir{padding:1px 7px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:.5px;}
+.trade-dir.LONG{background:var(--long-dim);color:var(--long);}
+.trade-dir.SHORT{background:var(--short-dim);color:var(--short);}
+.trade-combo{font-family:var(--mono);font-size:8px;color:var(--muted);padding:1px 6px;background:var(--s2);border-radius:4px;}
+.trade-result{font-family:var(--mono);font-size:11px;font-weight:700;}
+.trade-result.win{color:var(--long);}
+.trade-result.loss{color:var(--short);}
+.trade-result.open{color:var(--neutral);}
+.trade-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted);flex-wrap:wrap;gap:4px;}
+.trade-meta b{color:var(--text);font-weight:600;}
+/* EMPTY */
+.empty-state{text-align:center;padding:60px 20px;}
+.empty-icon{font-size:38px;margin-bottom:10px;opacity:.5;}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.empty-sub{font-size:11px;color:var(--muted);line-height:1.6;}
+.note-box{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:10px;color:var(--muted);line-height:1.6;margin-bottom:4px;}
+.note-box b{color:var(--text);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon">📡</div>
+      <div class="logo-text">SIGNAL<span>FLOW</span></div>
+    </div>
+    <div class="header-right">
+      <a class="nav-btn" href="liquidaciones.html">💧 Liq</a>
+      <a class="nav-btn" href="index.html">← Volver</a>
+      <button class="nav-btn" id="refreshBtn" onclick="refreshAll()">↻ Actualizar</button>
+      <button class="nav-btn" id="resetBtn" onclick="resetBacktest()" style="border-color:rgba(255,68,102,.4);color:var(--short)">🗑 Restablecer</button>
+    </div>
+  </div>
+  <div class="header-sub" id="lastUpdate">Backtest de señales y combos</div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-label">Filtrar por combo</div>
+  <div class="combo-chips" id="comboChips"></div>
+</div>
+
+<div class="period-bar">
+  <div class="filter-label">Periodo de backtest</div>
+  <div class="combo-chips" id="periodChips"></div>
+  <div class="custom-range" id="customRange">
+    <span>Desde</span><input type="date" id="dateFrom">
+    <span>Hasta</span><input type="date" id="dateTo">
+    <button onclick="applyCustomRange()">Aplicar</button>
+  </div>
+</div>
+
+<div class="main" id="mainContent"></div>
+
+<script>
+'use strict';
+
+// ── METADATOS DE COMBOS (deben coincidir con los id/label/name/cls de index.html) ─
+const COMBO_META = [
+  { id:'cazador',    label:'🎯 Cazador',        name:'Cazador de Tendencias',   cls:'c3' },
+  { id:'rango',      label:'📊 Rango',           name:'Cazador de Rangos',       cls:'c4' },
+  { id:'tendencia',  label:'🚀 Tendencia Pura',  name:'Tendencia Pura',          cls:'c1' },
+  { id:'estructura', label:'🏗️ Estructura',      name:'Estructura de Mercado',   cls:'c2' },
+  { id:'intradia',   label:'⚡ Intradía',         name:'Cazador Intradía',        cls:'c5' },
+  { id:'liqhunter',  label:'💧 LiqHunter',        name:'Cazador de Liquidaciones',cls:'c6' },
+];
+function comboMeta(id){ return COMBO_META.find(c=>c.id===id) || { id, label:id, name:id, cls:'c0' }; }
+
+let activeFilter = 'all'; // 'all' | comboId
+let activePeriod = 'all'; // '1d'|'7d'|'30d'|'90d'|'all'|'custom'
+let customFrom = null, customTo = null; // timestamps ms
+
+const PERIOD_META = [
+  { id:'1d',  label:'24h' },
+  { id:'7d',  label:'7 días' },
+  { id:'30d', label:'30 días' },
+  { id:'90d', label:'90 días' },
+  { id:'all', label:'Todo' },
+  { id:'custom', label:'📅 Personalizado' },
+];
+function periodRangeMs(id){
+  const now = Date.now();
+  const day = 24*60*60*1000;
+  if(id==='1d') return [now-1*day, now];
+  if(id==='7d') return [now-7*day, now];
+  if(id==='30d') return [now-30*day, now];
+  if(id==='90d') return [now-90*day, now];
+  if(id==='custom') return [customFrom ?? 0, customTo ?? now];
+  return [0, now]; // 'all'
+}
+
+function fmt(n){
+  if(n==null||isNaN(n))return'—';
+  const a=Math.abs(n);
+  if(a>=10000)return n.toLocaleString('es-ES',{maximumFractionDigits:0});
+  if(a>=1000)return n.toLocaleString('es-ES',{maximumFractionDigits:1});
+  if(a>=100)return n.toFixed(1);
+  if(a>=1)return n.toFixed(2);
+  if(a>=0.01)return n.toFixed(4);
+  return n.toFixed(6);
+}
+function fmtPct(n){ if(n==null||isNaN(n)) return '—'; return (n>=0?'+':'')+n.toFixed(2)+'%'; }
+function fmtDate(ts){
+  if(!ts) return '—';
+  const d=new Date(ts);
+  try{
+    const parts=new Intl.DateTimeFormat('es-CU',{timeZone:'America/Havana',hour:'2-digit',minute:'2-digit',hour12:false,day:'2-digit',month:'2-digit'}).formatToParts(d);
+    const get=t=>parts.find(p=>p.type===t)?.value||'--';
+    return `${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`;
+  }catch(e){ return d.toLocaleString('es-ES'); }
+}
+
+// ── CARGA DE DATOS (la misma localStorage que usa index.html) ───────────────
+function loadSignalHistory(){ try{ return JSON.parse(localStorage.getItem('sf_signal_history')||'{}'); }catch(e){ return {}; } }
+function loadCache(){ try{ return JSON.parse(localStorage.getItem('sf_cache')||'{}'); }catch(e){ return {}; } }
+
+// ── CONSTRUCCIÓN DE "TRADES" A PARTIR DEL HISTORIAL DE SEÑALES CONFIRMADAS ───
+// Cada vez que index.html confirma un cambio real de señal, guarda un evento
+// {signal, score, price, ts}. Tratamos cada evento LONG/SHORT como la apertura
+// de una operación simulada: se "cierra" en el precio del SIGUIENTE evento de
+// ese mismo ticker+combo (el momento en que la señal cambió de verdad). Si el
+// evento es el último registrado, la operación sigue "abierta" y se valora
+// con el último precio conocido (caché en vivo) solo a título informativo —
+// no cuenta para el win rate hasta que se cierre.
+function buildTrades(){
+  const history = loadSignalHistory();
+  const cache = loadCache();
+  const trades = [];
+  Object.keys(history).forEach(ticker=>{
+    Object.keys(history[ticker]).forEach(comboId=>{
+      const events = history[ticker][comboId] || [];
+      for(let i=0;i<events.length;i++){
+        const ev = events[i];
+        if(ev.signal!=='LONG' && ev.signal!=='SHORT') continue;
+        if(ev.price==null) continue;
+        const next = events[i+1];
+        const closed = !!(next && next.price!=null);
+        const exitPrice = closed ? next.price : (cache[ticker]?.price ?? null);
+        const exitTs = closed ? next.ts : null;
+        let pct = null, win = null;
+        if(exitPrice!=null){
+          pct = ev.signal==='LONG'
+            ? (exitPrice-ev.price)/ev.price*100
+            : (ev.price-exitPrice)/ev.price*100;
+          win = pct>0;
+        }
+        trades.push({
+          ticker, comboId, dir:ev.signal,
+          entryPrice:ev.price, entryTs:ev.ts, score:ev.score,
+          exitPrice, exitTs, closed: closed, pct, win,
+        });
+      }
+    });
+  });
+  trades.sort((a,b)=>b.entryTs-a.entryTs);
+  return trades;
+}
+
+function statsFor(trades){
+  const closed = trades.filter(t=>t.closed);
+  const open = trades.filter(t=>!t.closed);
+  const wins = closed.filter(t=>t.win);
+  const losses = closed.filter(t=>!t.win);
+  const winRate = closed.length ? (wins.length/closed.length*100) : null;
+  const avgPct = closed.length ? (closed.reduce((s,t)=>s+t.pct,0)/closed.length) : null;
+  return { total:closed.length, wins:wins.length, losses:losses.length, winRate, avgPct, open: open.length };
+}
+
+// ── MÉTRICAS AVANZADAS DE BACKTEST ──────────────────────────────────────────
+// Profit factor, drawdown máximo, racha actual, mejor/peor operación y la
+// curva de equity (capital simulado compuesto operación a operación).
+function advancedStats(trades){
+  const closed = trades.filter(t=>t.closed).slice().sort((a,b)=>a.entryTs-b.entryTs); // cronológico
+  if(closed.length===0){
+    return { profitFactor:null, expectancy:null, maxDD:null, bestTrade:null, worstTrade:null,
+             streak:0, streakType:null, totalReturn:null, curve:[], avgWin:null, avgLoss:null };
+  }
+  const wins = closed.filter(t=>t.win);
+  const losses = closed.filter(t=>!t.win);
+  const grossWin = wins.reduce((s,t)=>s+t.pct,0);
+  const grossLoss = Math.abs(losses.reduce((s,t)=>s+t.pct,0));
+  const profitFactor = grossLoss>0 ? grossWin/grossLoss : (grossWin>0 ? Infinity : null);
+  const avgWin = wins.length ? grossWin/wins.length : null;
+  const avgLoss = losses.length ? -grossLoss/losses.length : null;
+  const expectancy = closed.reduce((s,t)=>s+t.pct,0)/closed.length;
+
+  // Curva de equity compuesta (capital inicial = 100)
+  let equity = 100, peak = 100, maxDD = 0;
+  const curve = [];
+  closed.forEach(t=>{
+    equity *= (1+t.pct/100);
+    peak = Math.max(peak, equity);
+    const dd = peak>0 ? (peak-equity)/peak*100 : 0;
+    if(dd>maxDD) maxDD = dd;
+    curve.push(equity);
+  });
+  const totalReturn = (equity-100); // % de retorno compuesto total
+
+  const bestTrade = closed.reduce((a,b)=> (a==null||b.pct>a.pct)?b:a, null);
+  const worstTrade = closed.reduce((a,b)=> (a==null||b.pct<a.pct)?b:a, null);
+
+  // Racha actual (desde la operación más reciente hacia atrás)
+  let streak=0, streakType=null;
+  for(let i=closed.length-1;i>=0;i--){
+    const isWin = closed[i].win;
+    if(streak===0){ streakType = isWin?'win':'loss'; streak=1; }
+    else if((isWin && streakType==='win') || (!isWin && streakType==='loss')) streak++;
+    else break;
+  }
+
+  return { profitFactor, expectancy, maxDD, bestTrade, worstTrade, streak, streakType, totalReturn, curve, avgWin, avgLoss };
+}
+
+function fmtRatio(n){ if(n==null) return '—'; if(n===Infinity) return '∞'; return n.toFixed(2); }
+
+function equitySparkline(curve){
+  if(!curve || curve.length<2) return '<div style="font-size:9px;color:var(--muted);text-align:center;padding:10px 0">No hay suficientes operaciones para curva de equity</div>';
+  const w=300, h=60, pad=4;
+  const min=Math.min(...curve), max=Math.max(...curve);
+  const range = (max-min)||1;
+  const pts = curve.map((v,i)=>{
+    const x = pad + (i/(curve.length-1))*(w-2*pad);
+    const y = h-pad - ((v-min)/range)*(h-2*pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = curve[curve.length-1];
+  const color = last>=100 ? 'var(--long)' : 'var(--short)';
+  return `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/>
+  </svg>`;
+}
+
+function wrClass(wr){ if(wr==null) return 'mid'; if(wr>=55) return 'good'; if(wr<45) return 'bad'; return 'mid'; }
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const rawTrades = buildTrades();
+  const [pFrom, pTo] = periodRangeMs(activePeriod);
+  const allTrades = rawTrades.filter(t=> t.entryTs>=pFrom && t.entryTs<=pTo);
+  const trades = activeFilter==='all' ? allTrades : allTrades.filter(t=>t.comboId===activeFilter);
+  const main = document.getElementById('mainContent');
+
+  if(allTrades.length===0){
+    const filteredButEmpty = rawTrades.length>0 && activePeriod!=='all';
+    main.innerHTML = filteredButEmpty ? `<div class="empty-state">
+      <div class="empty-icon">🗓️</div>
+      <div class="empty-title">Sin operaciones en este periodo</div>
+      <div class="empty-sub">Hay ${rawTrades.length} operación(es) registradas en total, pero ninguna<br>
+      cae dentro del rango seleccionado. Prueba con "Todo" o amplía el rango.</div>
+    </div>` : `<div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">Aún no hay historial suficiente</div>
+      <div class="empty-sub">El backtest se construye con las señales CONFIRMADAS que SignalFlow<br>
+      va generando a partir de ahora. Deja la app principal abierta y refrescando<br>
+      (o vuelve a entrar más tarde) — esta página se irá llenando sola.</div>
+    </div>`;
+    document.getElementById('lastUpdate').textContent = 'Backtest de señales y combos · sin datos aún';
+    return;
+  }
+
+  const overall = statsFor(trades);
+  const adv = advancedStats(trades);
+  const wr = overall.winRate;
+  const wrLossPct = wr==null ? 0 : (100-wr);
+
+  // Stats por combo (siempre sobre TODOS los trades, no solo el filtro, para
+  // poder comparar combos entre sí aunque se esté filtrando por uno)
+  const byCombo = COMBO_META.map(c=>({ meta:c, stats: statsFor(allTrades.filter(t=>t.comboId===c.id)) }))
+    .filter(r=>r.stats.total>0 || r.stats.open>0);
+
+  // Stats por ticker (sobre el conjunto filtrado)
+  const tickers = [...new Set(trades.map(t=>t.ticker))];
+  const byTicker = tickers.map(tk=>({ ticker:tk, stats: statsFor(trades.filter(t=>t.ticker===tk)) }))
+    .sort((a,b)=> (b.stats.winRate??-1) - (a.stats.winRate??-1));
+
+  const bestCombo = byCombo.filter(r=>r.stats.total>=3).sort((a,b)=>(b.stats.winRate??-1)-(a.stats.winRate??-1))[0];
+
+  main.innerHTML = `
+    <div class="note-box">📌 <b>Cómo se calcula:</b> cada señal LONG/SHORT confirmada se trata como una operación simulada que se "cierra" cuando ese combo cambia de señal. El % es la variación de precio entre la entrada y el cierre (a favor o en contra de la dirección). Las operaciones aún abiertas se muestran aparte y no afectan al win rate.</div>
+
+    <div class="section-eyebrow">Resumen ${activeFilter==='all'?'general':'· '+comboMeta(activeFilter).name}</div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-card-label">Operaciones cerradas</div>
+        <div class="summary-card-val">${overall.total}</div>
+        <div class="summary-card-sub">${overall.open} abierta${overall.open===1?'':'s'} ahora mismo</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Retorno medio / op.</div>
+        <div class="summary-card-val ${overall.avgPct==null?'':(overall.avgPct>=0?'long':'short')}">${overall.avgPct==null?'—':fmtPct(overall.avgPct)}</div>
+        <div class="summary-card-sub">Ganadas ${overall.wins} · Perdidas ${overall.losses}</div>
+      </div>
+    </div>
+
+    <div class="wr-card">
+      <div class="wr-top">
+        <div class="wr-title">Win Rate</div>
+        <div class="wr-pct ${wrClass(wr)==='good'?'':''}" style="color:${wr==null?'var(--muted)':wr>=55?'var(--long)':wr<45?'var(--short)':'var(--neutral)'}">${wr==null?'—':wr.toFixed(1)+'%'}</div>
+      </div>
+      <div class="wr-bar-wrap">
+        ${wr==null?'':`<div class="wr-bar-win" style="width:${wr}%"></div><div class="wr-bar-loss" style="width:${wrLossPct}%"></div>`}
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Curva de equity (capital simulado, base 100)</div>
+    <div class="wr-card">
+      ${equitySparkline(adv.curve)}
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--muted)">
+        <span>Retorno compuesto total</span>
+        <span style="font-weight:700;color:${adv.totalReturn==null?'var(--muted)':(adv.totalReturn>=0?'var(--long)':'var(--short)')}">${adv.totalReturn==null?'—':fmtPct(adv.totalReturn)}</span>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Métricas avanzadas</div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-card-label">Profit Factor</div>
+        <div class="summary-card-val ${adv.profitFactor==null?'':(adv.profitFactor>=1?'long':'short')}">${fmtRatio(adv.profitFactor)}</div>
+        <div class="summary-card-sub">Ganancia bruta / pérdida bruta</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Drawdown máximo</div>
+        <div class="summary-card-val ${adv.maxDD==null?'':'short'}">${adv.maxDD==null?'—':'-'+adv.maxDD.toFixed(2)+'%'}</div>
+        <div class="summary-card-sub">Mayor caída desde un pico de equity</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Ganancia media</div>
+        <div class="summary-card-val long">${adv.avgWin==null?'—':fmtPct(adv.avgWin)}</div>
+        <div class="summary-card-sub">Promedio de operaciones ganadas</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Pérdida media</div>
+        <div class="summary-card-val short">${adv.avgLoss==null?'—':fmtPct(adv.avgLoss)}</div>
+        <div class="summary-card-sub">Promedio de operaciones perdidas</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Mejor operación</div>
+        <div class="summary-card-val long">${adv.bestTrade?fmtPct(adv.bestTrade.pct):'—'}</div>
+        <div class="summary-card-sub">${adv.bestTrade?`${adv.bestTrade.ticker} · ${comboMeta(adv.bestTrade.comboId).label}`:'—'}</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">Peor operación</div>
+        <div class="summary-card-val short">${adv.worstTrade?fmtPct(adv.worstTrade.pct):'—'}</div>
+        <div class="summary-card-sub">${adv.worstTrade?`${adv.worstTrade.ticker} · ${comboMeta(adv.worstTrade.comboId).label}`:'—'}</div>
+      </div>
+      <div class="summary-card" style="grid-column:1/-1">
+        <div class="summary-card-label">Racha actual</div>
+        <div class="summary-card-val ${adv.streakType==='win'?'long':adv.streakType==='loss'?'short':''}">${adv.streak>0?adv.streak+' '+(adv.streakType==='win'?'ganadas seguidas ✅':'perdidas seguidas ❌'):'—'}</div>
+      </div>
+    </div>
+
+    ${bestCombo?`<div class="note-box" style="margin-top:8px">🏆 <b>Mejor combo (mín. 3 operaciones):</b> ${bestCombo.meta.name} — ${bestCombo.stats.winRate.toFixed(1)}% win rate (${bestCombo.stats.wins}/${bestCombo.stats.total})</div>`:''}
+
+    <div class="section-eyebrow">Win rate por combo</div>
+    <div class="bt-table">
+      <div class="bt-row head"><span>Combo</span><span style="text-align:right">Trades</span><span style="text-align:right">Retorno</span><span style="text-align:right">Win Rate</span></div>
+      ${byCombo.length? byCombo.map(r=>`
+        <div class="bt-row">
+          <div class="bt-name">${r.meta.label}</div>
+          <div class="bt-num">${r.stats.total}${r.stats.open?` <span style="color:var(--muted)">(+${r.stats.open})</span>`:''}</div>
+          <div class="bt-num">${r.stats.avgPct==null?'—':fmtPct(r.stats.avgPct)}</div>
+          <div class="bt-wr ${wrClass(r.stats.winRate)}">${r.stats.winRate==null?'—':r.stats.winRate.toFixed(1)+'%'}</div>
+        </div>`).join('') : `<div class="bt-row"><span style="color:var(--muted);font-size:10px">Sin datos todavía</span></div>`}
+    </div>
+
+    <div class="section-eyebrow">Win rate por activo ${activeFilter!=='all'?'· '+comboMeta(activeFilter).name:''}</div>
+    <div class="bt-table">
+      <div class="bt-row head"><span>Activo</span><span style="text-align:right">Trades</span><span style="text-align:right">Retorno</span><span style="text-align:right">Win Rate</span></div>
+      ${byTicker.length? byTicker.map(r=>`
+        <div class="bt-row">
+          <div class="bt-name">${r.ticker}</div>
+          <div class="bt-num">${r.stats.total}${r.stats.open?` <span style="color:var(--muted)">(+${r.stats.open})</span>`:''}</div>
+          <div class="bt-num">${r.stats.avgPct==null?'—':fmtPct(r.stats.avgPct)}</div>
+          <div class="bt-wr ${wrClass(r.stats.winRate)}">${r.stats.winRate==null?'—':r.stats.winRate.toFixed(1)+'%'}</div>
+        </div>`).join('') : `<div class="bt-row"><span style="color:var(--muted);font-size:10px">Sin datos todavía</span></div>`}
+    </div>
+
+    <div class="section-eyebrow">Historial de operaciones ${activeFilter!=='all'?'· '+comboMeta(activeFilter).name:''}</div>
+    <div class="trade-list">
+      ${trades.slice(0,60).map(t=>{
+        const meta=comboMeta(t.comboId);
+        const resultCls = !t.closed ? 'open' : (t.win?'win':'loss');
+        const resultLbl = !t.closed ? '⏳ Abierta' : (t.win?'✅ Ganada':'❌ Perdida');
+        return `<div class="trade-item ${resultCls}">
+          <div class="trade-top">
+            <div class="trade-id">
+              <span class="trade-dir ${t.dir}">${t.dir}</span>
+              <span>${t.ticker}</span>
+              <span class="trade-combo">${meta.label}</span>
+            </div>
+            <div class="trade-result ${resultCls}">${resultLbl}${t.pct!=null?' · '+fmtPct(t.pct):''}</div>
+          </div>
+          <div class="trade-meta">
+            <span>Entrada: <b>${fmt(t.entryPrice)}</b> · ${fmtDate(t.entryTs)}</span>
+            <span>${t.closed?`Salida: <b>${fmt(t.exitPrice)}</b> · ${fmtDate(t.exitTs)}`:`Precio actual: <b>${t.exitPrice!=null?fmt(t.exitPrice):'—'}</b>`}</span>
+          </div>
+        </div>`;
+      }).join('') || `<div class="empty-sub" style="text-align:center;padding:20px">Sin operaciones para este filtro</div>`}
+    </div>
+  `;
+
+  document.getElementById('lastUpdate').textContent = `Backtest · ${allTrades.filter(t=>t.closed).length} operaciones cerradas (${PERIOD_META.find(p=>p.id===activePeriod)?.label||'Todo'}) · actualizado ${new Date().toLocaleTimeString('es-ES')}`;
+}
+
+function buildComboChips(){
+  const wrap = document.getElementById('comboChips');
+  const chips = [{id:'all', label:'Todos', cls:'c0'}, ...COMBO_META];
+  wrap.innerHTML = chips.map(c=>`<div class="combo-chip ${c.cls} ${activeFilter===c.id?'active '+c.cls:''}" onclick="setFilter('${c.id}')">${c.label}</div>`).join('');
+}
+function buildPeriodChips(){
+  const wrap = document.getElementById('periodChips');
+  wrap.innerHTML = PERIOD_META.map(p=>`<div class="combo-chip ${activePeriod===p.id?'active c0':''}" onclick="setPeriod('${p.id}')">${p.label}</div>`).join('');
+  const cr = document.getElementById('customRange');
+  cr.classList.toggle('show', activePeriod==='custom');
+}
+function setFilter(id){ activeFilter=id; buildComboChips(); render(); }
+function setPeriod(id){
+  activePeriod=id;
+  buildPeriodChips();
+  if(id!=='custom') render();
+}
+function applyCustomRange(){
+  const from = document.getElementById('dateFrom').value;
+  const to = document.getElementById('dateTo').value;
+  customFrom = from ? new Date(from+'T00:00:00').getTime() : 0;
+  customTo = to ? new Date(to+'T23:59:59').getTime() : Date.now();
+  render();
+}
+function refreshAll(){ render(); }
+function resetBacktest(){
+  if(!confirm('¿Restablecer el backtest? Esto borrará todo el historial de señales registradas (sf_signal_history) y el estado de confirmación de señales (sf_signaltimes). Esta acción no se puede deshacer.')) return;
+  try{
+    localStorage.removeItem('sf_signal_history');
+    localStorage.removeItem('sf_signaltimes');
+  }catch(e){}
+  activeFilter='all'; activePeriod='all'; customFrom=null; customTo=null;
+  buildComboChips(); buildPeriodChips(); render();
+}
+
+buildComboChips();
+buildPeriodChips();
+render();
+// Si el usuario vuelve a esta pestaña tras haber dejado la app principal
+// generando señales en otra pestaña, refrescamos solos.
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') render(); });
+</script>
+</body>
+</html>
